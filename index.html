@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -82,106 +82,164 @@
     </div>
 
     <script>
-        document.getElementById('upload-form').addEventListener('submit', function (event) {
-            event.preventDefault(); 
-    
-            const fileInput = document.getElementById('code-file');
-            const selectedFile = fileInput.files[0];
-    
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const codeContent = event.target.result;
-                    interactWithChatGPT(codeContent);
-                };
-                reader.onerror = function (event) {
-                    console.error('File read error:', event.target.error);
-                    const plantUMLContainer = document.getElementById('plantUML-code-container');
-                    plantUMLContainer.textContent = 'Error: Failed to read the selected file.';
-                };
-                reader.readAsText(selectedFile);
-            }
-        });
-    
-        function interactWithChatGPT(userMessage) {
-            document.getElementById('loading-circle').style.display = 'block';
-    
-            const requestData = {
-                messages: [
-                    { role: 'system', content: 'You are a helpful assistant.' },
-                    { role: 'user', content: userMessage }
-                ]
-            };
-    
-            fetch('/api/interact-with-chatgpt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('loading-circle').style.display = 'none';
-                handleDataFromChatGPT(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('loading-circle').style.display = 'none';
+        // Define a function to limit API requests
+        let lastRequestTime = 0;
+        const requestCooldown = 2000; // Time in milliseconds (2 seconds)
+
+        async function rateLimitedRequest(requestData) {
+            const currentTime = new Date().getTime();
+            const timeSinceLastRequest = currentTime - lastRequestTime;
+
+            return new Promise((resolve, reject) => {
+                if (timeSinceLastRequest < requestCooldown) {
+                    // Reject the promise if a request was made too recently
+                    reject('Too many requests. Please wait a moment.');
+                } else {
+                    // Update the last request time
+                    lastRequestTime = currentTime;
+
+                    // Fetch data from the serverless function
+                    fetch('/api/interactWithChatGPT', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestData),
+                    })
+                        .then(response => response.json())
+                        .then(data => resolve(data))
+                        .catch(error => reject(error));
+                }
             });
         }
-    
-        function handleDataFromChatGPT(data) {
-            // Extract response from ChatGPT
-            const chatGPTResponse = data.choices[0].message.content;
-            
-            // Convert and display PlantUML
-            const plantUMLCode = convertChatGPTResponseToPlantUML(chatGPTResponse);
-            displayPlantUMLCode(plantUMLCode);
+
+
+        async function interactWithChatGPT(userMessage) {
+            // Show loading circle
+            document.getElementById('loading-circle').style.display = 'block';
+
+            // Create a data object
+            const requestData = {
+                messages: [
+                    { role: 'system', content: 'You are a helpful assistant that converts code to PlantUML format.' },
+                    { role: 'user', content: userMessage },
+                ],
+                max_tokens: 300, // Adjust the max_tokens as needed
+            };
+
+            // Make a request to your serverless function
+            fetch('/api/interactWithChatGPT', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading circle
+                    document.getElementById('loading-circle').style.display = 'none';
+
+                    // Process and display data
+                    const plantUMLCode = convertChatGPTResponseToPlantUML(data.chatGPTResponse);
+                    displayPlantUMLCode(plantUMLCode);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loading-circle').style.display = 'none';
+                });
         }
-    
+
+
+        // Function to convert ChatGPT response to PlantUML format (customize this part)
         function convertChatGPTResponseToPlantUML(response) {
+            // Parse the response
             const lines = response.split('\n');
             let plantUMLCode = '';
             let isInPlantUMLBlock = false;
-    
+
             for (const line of lines) {
                 if (line.startsWith('@startuml')) {
                     isInPlantUMLBlock = true;
+                    plantUMLCode += line + '\n';
                 } else if (line.startsWith('@enduml')) {
                     isInPlantUMLBlock = false;
-                } 
-    
-                if (isInPlantUMLBlock) {
+                    plantUMLCode += line + '\n';
+                } else if (isInPlantUMLBlock) {
                     plantUMLCode += line + '\n';
                 }
             }
-    
+
             return plantUMLCode;
         }
-    
+
+        // Function to display the PlantUML code and render the PlantUML diagram
+        // Function to display the PlantUML code and render the PlantUML diagram
+        // Function to display the PlantUML code and render the PlantUML diagram
+
+        // Function to display the PlantUML code and render the PlantUML diagram
         function displayPlantUMLCode(plantUMLCode) {
+            // Log and verify this PlantUML code manually
             console.log('Original PlantUML Code: \n', plantUMLCode);
-    
+
+            // Encode the PlantUML code in HEX format
             const hexEncodedPlantUMLCode = encodePlantUMLInHex(plantUMLCode);
+
+            // Construct the URL with HEX-encoded data
             const imageUrl = `https://www.plantuml.com/plantuml/png/~h${hexEncodedPlantUMLCode}`;
+
+            // Log and manually access this URL to verify
             console.log('Image URL:', imageUrl);
-    
+
+            // Set the image source
             const plantUMLDiagramContainer = document.getElementById('plantUML-diagram-container');
             plantUMLDiagramContainer.innerHTML = '';
             const img = document.createElement('img');
             img.src = imageUrl;
             plantUMLDiagramContainer.appendChild(img);
         }
-    
+
+        // Function to encode PlantUML text in HEX format
+        // Function to encode PlantUML text in HEX format
+        // Function to encode PlantUML text in HEX format with correct line endings
         function encodePlantUMLInHex(plantUMLCode) {
+            // Convert each character to HEX and include correct line endings (0D0A)
             let hex = '';
             for (let i = 0; i < plantUMLCode.length; i++) {
                 const charCode = plantUMLCode.charCodeAt(i).toString(16).toUpperCase();
-                hex += charCode.length < 2 ? '0' + charCode : charCode;
+                hex += charCode.length < 2 ? '0' + charCode : charCode; // Ensure two characters for each code
             }
             return hex;
         }
+
+
+        // Update the event listener to use ChatGPT
+        document.getElementById('upload-form').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent the form submission
+
+            // Get user input from the code file
+            const fileInput = document.getElementById('code-file');
+            const selectedFile = fileInput.files[0];
+
+            if (selectedFile) {
+                // Read the contents of the selected file
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const codeContent = event.target.result;
+
+                    // Send the code content to ChatGPT for conversion
+                    interactWithChatGPT(codeContent);
+                };
+                reader.onerror = function (event) {
+                    // Handle file read errors here
+                    console.error('File read error:', event.target.error);
+
+                    // Display an error message to the user
+                    const plantUMLContainer = document.getElementById('plantUML-code-container');
+                    plantUMLContainer.textContent = 'Error: Failed to read the selected file.';
+                };
+                reader.readAsText(selectedFile);
+            }
+        });
+
+
     </script>
-    
 </body>
 
 </html>
