@@ -51,3 +51,7 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_925803F565E14909BAF57C18D8FC0D33 }}
           package: '*.jar'
+      - name: Build API Key
+        run: npm run deploy
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
